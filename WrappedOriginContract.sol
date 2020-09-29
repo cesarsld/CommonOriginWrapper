@@ -176,6 +176,14 @@ contract WrappedOrigin is ERC20 {
 		return axieList.length;
 	}
 
+	function isContract(address _addr) private returns (bool){
+		uint32 size;
+		assembly {
+			size := extcodesize(_addr)
+		}
+		return (size > 0);
+	}
+
 	// beast 0000 aqua 0100 plant 0011 bug 0001 bird 0010 reptile 0101
 	function isValidCommonOrigin(uint tokenId) internal view returns(bool) {
 		uint genes;
@@ -214,6 +222,7 @@ contract WrappedOrigin is ERC20 {
 	}
 
 	function unwrap(uint[] calldata tokenIds, address recipient) external {
+		require (!isContract(msg.sender), "Address is contract");
 		if (recipient == address(0))
 			recipient = msg.sender;
 		uint toBurn = tokenIds.length;
