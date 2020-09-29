@@ -180,12 +180,10 @@ contract WrappedOrigin is ERC20 {
 		uint copy = genes;
 		genes = (copy >> 238) & 1;
 		//origin check
-		if (genes != 1)
-			return false;
+		require (genes == 1, "Not origin");
 		genes = (copy >> 252);
 		// check for bird, reptile and bug
-		if (genes & 2 == 2 || genes & 5 == 5 || genes & 1 == 1)
-			return false;
+		require (genes == 0 || genes == 4 || genes == 3, "Not common class");
 		return !isMystic(copy);
 	}
 
@@ -194,8 +192,7 @@ contract WrappedOrigin is ERC20 {
 		uint mysticSelector = 0xC0000000;
 		for (uint i = 0; i < 6 ;i ++) {
 			part = genes & 0xFFFFFFFF;
-			if (part & mysticSelector == mysticSelector)
-				return true;
+			require (part & mysticSelector != mysticSelector, "Axie contains a mystic part");
 			genes = genes >> 32;
 		}
 		return false;
