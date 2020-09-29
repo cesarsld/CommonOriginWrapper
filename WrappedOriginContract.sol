@@ -165,7 +165,10 @@ contract WrappedOrigin is ERC20 {
 
 	uint[] private axieList;
 
-	mapping (uint256 => bool) private unwrappableAxie;
+	mapping (uint256 => bool) public unwrappableAxie;
+
+	event AxieWrapped(uint256 axieId);
+	event AxieUnwrapped(uint256 axieId);
 
 	constructor (string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol, _decimals) {}
 
@@ -205,6 +208,7 @@ contract WrappedOrigin is ERC20 {
 			axieList.push(tokenIds[i]);
 			unwrappableAxie[tokenIds[i]] = true;
 			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(msg.sender, address(this), tokenIds[i]);
+			emit AxieWrapped(tokenIds[i]);
 		}
 		_mint(msg.sender, tokenIds.length * 10**decimals);
 	}
@@ -218,6 +222,7 @@ contract WrappedOrigin is ERC20 {
 			unwrappableAxie[tokenIds[i]] = false;
 			_swapAndDeleteAxie(_getIndex(tokenIds[i]));
 			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(address(this), recipient, tokenIds[i]);
+			emit AxieUnwrapped(tokenIds[i]);
 		}
 		_burn(msg.sender, toBurn * 10**decimals);
 	}
