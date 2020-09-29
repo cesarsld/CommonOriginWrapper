@@ -173,33 +173,43 @@ contract WrappedOrigin is ERC20 {
 		return axieList.length;
 	}
 
-	function isValidOrigin(uint tokenId) internal view returns(bool) {
+	// beast 0000 aqua 0100 plant 0011 bug 0001 bird 0010 reptile 0101
+	function isValidCommonOrigin(uint tokenId) internal view returns(bool) {
 		uint genes;
 		(genes,) = AxieCore(AXIE_NFT_ADDRESS).getAxie(tokenId);
-		genes = (genes >> 238) & 1;
-		if (genes == 1)
-			return true;
+		uint copy = genes;
+		genes = (copy >> 238) & 1;
+		//origin check
+		if (genes != 1)
+			return false;
+		genes = (copy >> 252);
+		// check for bird, reptile and bug
+		if (genes & 2 == 2 || genes & 5 == 5 || genes & 1 == 1)
+			return false;
+		return !isMystic(copy);
+	}
+
+	function isMystic(uint genes) pure internal returns (bool) {
+		uint part;
+		uint mysticSelector = 0xC0000000;
+		for (uint i = 0; i < 6 ;i ++) {
+			part = genes & 0xFFFFFFFF;
+			if (part & mysticSelector == mysticSelector)
+				return true;
+			genes = genes >> 32;
+		}
 		return false;
 	}
 
 	function wrap(uint[] calldata tokenIds) external {
 		require (tokenIds.length > 0, "array is empty");
 		for (uint i = 0; i < tokenIds.length; i++) {
-			require (isValidOrigin(tokenIds[i]), "Not origin axie");
+			require (isValidCommonOrigin(tokenIds[i]), "Not origin axie");
 			axieList.push(tokenIds[i]);
 			unwrappableAxie[tokenIds[i]] = true;
 			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(msg.sender, address(this), tokenIds[i]);
 		}
 		_mint(msg.sender, tokenIds.length * 10**decimals);
-	}
-
-	function unwrap() external {
-		_burn(msg.sender, 10**decimals);
-		uint index = getRandomValue() % axieList.length;
-		uint tokenId = axieList[index];
-		axieList[index] = axieList[axieList.length - 1];
-		delete axieList[axieList.length - 1];
-		IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(address(this), msg.sender, tokenId);
 	}
 
 	function unwrap(uint[] calldata tokenIds, address recipient) external {
@@ -213,10 +223,6 @@ contract WrappedOrigin is ERC20 {
 			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(address(this), recipient, tokenIds[i]);
 		}
 		_burn(msg.sender, toBurn * 10**decimals);
-	}
-
-	function getRandomValue() internal returns(uint){
-		return 0;
 	}
 
 	function _getIndex(uint tokenId) internal view returns(uint) {
