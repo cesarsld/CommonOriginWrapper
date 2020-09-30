@@ -208,9 +208,7 @@ contract WrappedOrigin is ERC20, Pausable {
 	address public constant AXIE_NFT_ADDRESS = address(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
 	address public constant AXIE_EXTRA_DATA = address(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
 
-	uint[] private axieList;
-
-	mapping (uint256 => bool) public unwrappableAxie;
+	uint[] public axieList;
 
 	event AxieWrapped(uint256 axieId);
 	event AxieUnwrapped(uint256 axieId);
@@ -241,6 +239,7 @@ contract WrappedOrigin is ERC20, Pausable {
 		// check for bird, reptile and bug
 		require (genes == 0 || genes == 4 || genes == 3, "Not common class");
 		uint breedCount;
+		// Check 2 breed or lower
 		(,,breedCount,) = AxieExtraData(AXIE_EXTRA_DATA).getExtra(tokenId);
 		require (breedCount <= 2, "Bred too many times");
 		return !isMystic(copy);
@@ -262,36 +261,19 @@ contract WrappedOrigin is ERC20, Pausable {
 		for (uint i = 0; i < tokenIds.length; i++) {
 			require (isValidCommonOrigin(tokenIds[i]), "Not origin axie");
 			axieList.push(tokenIds[i]);
-			unwrappableAxie[tokenIds[i]] = true;
 			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(msg.sender, address(this), tokenIds[i]);
 			emit AxieWrapped(tokenIds[i]);
 		}
 		_mint(msg.sender, tokenIds.length * 10**decimals);
 	}
 
-	function unwrap(uint[] calldata tokenIds, address recipient) external notPaused {
-		require (!isContract(msg.sender), "Address is contract");
-		if (recipient == address(0))
-			recipient = msg.sender;
-		uint toBurn = tokenIds.length;
-		for (uint i = 0; i < tokenIds.length; i++) {
-			require (unwrappableAxie[tokenIds[i]], "Axie not in wrap contract");
-			unwrappableAxie[tokenIds[i]] = false;
-			_swapAndDeleteAxie(_getIndex(tokenIds[i]));
-			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(address(this), recipient, tokenIds[i]);
-			emit AxieUnwrapped(tokenIds[i]);
-		}
-		_burn(msg.sender, toBurn * 10**decimals);
-	}
-
-		function unwrap(uint _amount, address recipient) external notPaused{
+	function unwrap(uint _amount, address recipient) external notPaused{
 		require (!isContract(msg.sender), "Address is contract");
 		if (recipient == address(0))
 			recipient = msg.sender;
 		for (uint i = 0; i < _amount; i++) {
 			uint index = _getRandomNumber(inPool());
 			uint tokenId = axieList[index];
-			unwrappableAxie[index] = false;
 			_swapAndDeleteAxie(index);
 			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(address(this), recipient, tokenId);
 			emit AxieUnwrapped(tokenId);
@@ -301,13 +283,6 @@ contract WrappedOrigin is ERC20, Pausable {
 
 	function _getRandomNumber(uint range) internal view returns(uint) {
 		return uint(keccak256(abi.encodePacked(block.timestamp, blockhash(block.number - 1)))) % range;
-	}
-
-	function _getIndex(uint tokenId) internal view returns(uint) {
-		for (uint i = 0; i < axieList.length; i++) {
-			if (axieList[i] == tokenId)
-				return i;
-		}
 	}
 
 	function _swapAndDeleteAxie(uint index) internal {
