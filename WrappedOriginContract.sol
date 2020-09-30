@@ -158,10 +158,55 @@ interface AxieCore{
 	function getAxie(uint256 _axieId) external view returns (uint256 /* _genes */, uint256 /* _bornAt */);
 }
 
-contract WrappedOrigin is ERC20 {
+interface AxieExtraData {
+	function getExtra(uint256 _axieId) external view returns(uint256, uint256, uint256 /* breed count */, uint256);
+}
+
+contract Ownable {
+	address public owner;
+
+	constructor () {
+		owner = msg.sender;
+	}
+
+	modifier onlyOwner() {
+		require (msg.sender == owner, "Not owner");
+		_;
+	}
+	
+	function SetOwnership(address _newOwner) external onlyOwner {
+		owner = _newOwner;
+	}
+
+	
+}
+
+contract Pausable is Ownable {
+	bool public isPaused;
+	
+	constructor () {
+		isPaused = false;
+	}
+	
+	modifier notPaused() {
+		require (!isPaused, "paused");
+		_;
+	}
+	
+	function pause() external onlyOwner {
+		isPaused = true;
+	}
+	
+	function unpause() external onlyOwner {
+		isPaused = false;
+	}
+}
+
+contract WrappedOrigin is ERC20, Pausable {
 	using SafeMath for uint256;
 
 	address public constant AXIE_NFT_ADDRESS = address(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
+	address public constant AXIE_EXTRA_DATA = address(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
 
 	uint[] private axieList;
 
@@ -176,7 +221,7 @@ contract WrappedOrigin is ERC20 {
 		return axieList.length;
 	}
 
-	function isContract(address _addr) private returns (bool){
+	function isContract(address _addr) internal view returns (bool){
 		uint32 size;
 		assembly {
 			size := extcodesize(_addr)
@@ -195,6 +240,9 @@ contract WrappedOrigin is ERC20 {
 		genes = (copy >> 252);
 		// check for bird, reptile and bug
 		require (genes == 0 || genes == 4 || genes == 3, "Not common class");
+		uint breedCount;
+		(,,breedCount,) = AxieExtraData(AXIE_EXTRA_DATA).getExtra(tokenId);
+		require (breedCount <= 2, "Bred too many times");
 		return !isMystic(copy);
 	}
 
@@ -209,7 +257,7 @@ contract WrappedOrigin is ERC20 {
 		return false;
 	}
 
-	function wrap(uint[] calldata tokenIds) external {
+	function wrap(uint[] calldata tokenIds) external notPaused {
 		require (tokenIds.length > 0, "array is empty");
 		for (uint i = 0; i < tokenIds.length; i++) {
 			require (isValidCommonOrigin(tokenIds[i]), "Not origin axie");
@@ -221,7 +269,7 @@ contract WrappedOrigin is ERC20 {
 		_mint(msg.sender, tokenIds.length * 10**decimals);
 	}
 
-	function unwrap(uint[] calldata tokenIds, address recipient) external {
+	function unwrap(uint[] calldata tokenIds, address recipient) external notPaused {
 		require (!isContract(msg.sender), "Address is contract");
 		if (recipient == address(0))
 			recipient = msg.sender;
@@ -234,6 +282,25 @@ contract WrappedOrigin is ERC20 {
 			emit AxieUnwrapped(tokenIds[i]);
 		}
 		_burn(msg.sender, toBurn * 10**decimals);
+	}
+
+		function unwrap(uint _amount, address recipient) external notPaused{
+		require (!isContract(msg.sender), "Address is contract");
+		if (recipient == address(0))
+			recipient = msg.sender;
+		for (uint i = 0; i < _amount; i++) {
+			uint index = _getRandomNumber(inPool());
+			uint tokenId = axieList[index];
+			unwrappableAxie[index] = false;
+			_swapAndDeleteAxie(index);
+			IERC721(AXIE_NFT_ADDRESS).safeTransferFrom(address(this), recipient, tokenId);
+			emit AxieUnwrapped(tokenId);
+		}
+		_burn(msg.sender, _amount * 10**decimals);
+	}
+
+	function _getRandomNumber(uint range) internal view returns(uint) {
+		return uint(keccak256(abi.encodePacked(block.timestamp, blockhash(block.number - 1)))) % range;
 	}
 
 	function _getIndex(uint tokenId) internal view returns(uint) {
