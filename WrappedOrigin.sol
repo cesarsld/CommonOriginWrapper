@@ -211,8 +211,9 @@ contract Pausable is Ownable {
 contract WrappedOrigin is ERC20, Pausable {
 	using SafeMath for uint256;
 
-	address public constant AXIE_CORE_ADDRESS = address(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
-	address public constant AXIE_EXTRA_DATA_ADDRESS = address(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
+	IERC721 public constant axieNFT = IERC721(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
+	AxieCore public constant axieCore = AxieCore(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
+	AxieExtraData public constant extraData = AxieExtraData(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
 
 	uint256[] public axies;
 
@@ -236,18 +237,17 @@ contract WrappedOrigin is ERC20, Pausable {
 
 	// beast 0000 aqua 0100 plant 0011 bug 0001 bird 0010 reptile 0101
 	function isValidCommonOrigin(uint256 _tokenId) public view returns(bool) {
-		(uint256 _genes,) = AxieCore(AXIE_CORE_ADDRESS).getAxie(_tokenId);
-		uint256 _copy = _genes;
-		_genes = (_copy >> 238) & 1;
-		if (_genes != 1)
+		(uint256 _genes,) = axieCore.getAxie(_tokenId);
+		uint256 _originGene = (_genes >> 238) & 1;
+		if (_originGene != 1)
 			return false;
-		_genes = (_copy >> 252);
-		if (_genes != 0 || _genes != 4 || _genes != 3)
+		uint256 _classGenes = (_genes >> 252);
+		if (_classGenes != 0 || _classGenes != 4 || _classGenes != 3)
 			return false;
-		(,,uint256 _breedCount,) = AxieExtraData(AXIE_EXTRA_DATA_ADDRESS).getExtra(_tokenId);
+		(,,uint256 _breedCount,) =extraData.getExtra(_tokenId);
 		if (_breedCount > 2)
 			return false;
-		return !isMystic(_copy);
+		return !isMystic(_genes);
 	}
 
 	function isMystic(uint256 _genes) pure internal returns (bool) {
@@ -266,7 +266,7 @@ contract WrappedOrigin is ERC20, Pausable {
 		for (uint256 i = 0; i < _tokenIds.length; i++) {
 			require(isValidCommonOrigin(_tokenIds[i]), "WrappedOrigin : Axie is not an Origin axie.");
 			axies.push(_tokenIds[i]);
-			IERC721(AXIE_CORE_ADDRESS).safeTransferFrom(msg.sender, address(this), _tokenIds[i]);
+			axieNFT.safeTransferFrom(msg.sender, address(this), _tokenIds[i]);
 			emit AxieWrapped(_tokenIds[i]);
 		}
 		_mint(msg.sender, _tokenIds.length * 10**decimals);
@@ -287,13 +287,13 @@ contract WrappedOrigin is ERC20, Pausable {
 
 			axies[_index] = axies[axies.length - 1];
 			axies.pop();
-			IERC721(AXIE_CORE_ADDRESS).safeTransferFrom(address(this), _recipient, _tokenId);
+			axieNFT.safeTransferFrom(address(this), _recipient, _tokenId);
 			emit AxieUnwrapped(_tokenId);
 		}
 	}
 
 	function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external view returns (bytes4) {
-		require(msg.sender == AXIE_CORE_ADDRESS, "Not Axie NFT");
+		require(msg.sender == address(axieNFT), "Not Axie NFT");
 		return WrappedOrigin.onERC721Received.selector;
 	}
 }
