@@ -33,19 +33,17 @@ interface IERC721 is IERC165 {
 library SafeMath {
 	function add(uint256 a, uint256 b) internal pure returns (uint256) {
 		uint256 c = a + b;
-		require(c >= a, "SafeMath: addition overflow");
-
+		require(c >= a, "SafeMath: addition overflow.");
 		return c;
 	}
 
 	function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-		return sub(a, b, "SafeMath: subtraction overflow");
+		return sub(a, b, "SafeMath: subtraction overflow.");
 	}
 
 	function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
 		require(b <= a, errorMessage);
 		uint256 c = a - b;
-
 		return c;
 	}
 
@@ -55,13 +53,12 @@ library SafeMath {
 		}
 
 		uint256 c = a * b;
-		require(c / a == b, "SafeMath: multiplication overflow");
-
+		require(c / a == b, "SafeMath: multiplication overflow.");
 		return c;
 	}
 
 	function div(uint256 a, uint256 b) internal pure returns (uint256) {
-		return div(a, b, "SafeMath: division by zero");
+		return div(a, b, "SafeMath: division by zero.");
 	}
 
 	function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -73,7 +70,7 @@ library SafeMath {
 	}
 
 	function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-		return mod(a, b, "SafeMath: modulo by zero");
+		return mod(a, b, "SafeMath: modulo by zero.");
 	}
 
 	function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
@@ -129,7 +126,7 @@ abstract contract ERC20 is IERC20 {
 	}
 
 	function transfer(address _to, uint256 _value) public override returns (bool _success) {
-		require(_to != address(0), "ERC20 : Recipient address is null.");
+		require(_to != address(0), "ERC20: Recipient address is null.");
 		_balanceOf[msg.sender] = _balanceOf[msg.sender].sub(_value);
 		_balanceOf[_to] = _balanceOf[_to].add(_value);
 		emit Transfer(msg.sender, _to, _value);
@@ -137,7 +134,7 @@ abstract contract ERC20 is IERC20 {
 	}
 
 	function transferFrom(address _from, address _to, uint256 _value) public override returns (bool _success) {
-		require(_to != address(0), "ERC20 : Recipient address is null");
+		require(_to != address(0), "ERC20: Recipient address is null.");
 		_balanceOf[_from] = _balanceOf[_from].sub(_value);
 		_balanceOf[_to] = _balanceOf[_to].add(_value);
 		_allowance[_from][msg.sender] = _allowance[_from][msg.sender].sub(_value);
@@ -151,21 +148,20 @@ abstract contract ERC20 is IERC20 {
 		emit Transfer(address(0), _to, _amount);
 	}
 
-	function _burn (address _account, uint256 _amount) internal {
-		require(_account != address(0), "ERC20 : Burning from address 0");
-
-		_balanceOf[_account] = _balanceOf[_account].sub(_amount, "ERC20 : burn amount exceeds balance");
+	function _burn(address _from, uint256 _amount) internal {
+		require(_from != address(0), "ERC20: Burning from address 0.");
+		_balanceOf[_from] = _balanceOf[_from].sub(_amount, "ERC20: burn amount exceeds balance.");
 		_totalSupply = _totalSupply.sub(_amount);
-		emit Transfer (_account, address(0), _amount);
+		emit Transfer(_from, address(0), _amount);
 	}
 }
 
-interface AxieCore{
-	function getAxie(uint256 _axieId) external view returns (uint256 /* _genes */, uint256 /* _bornAt */);
+interface AxieCore is IERC721 {
+	function getAxie(uint256 _axieId) external view returns (uint256 _genes, uint256 _bornAt);
 }
 
 interface AxieExtraData {
-	function getExtra(uint256 _axieId) external view returns(uint256, uint256, uint256 /* breed count */, uint256);
+	function getExtra(uint256 _axieId) external view returns (uint256, uint256, uint256 /* breed count */, uint256);
 }
 
 contract Ownable {
@@ -183,8 +179,6 @@ contract Ownable {
 	function setOwnership(address _newOwner) external onlyOwner {
 		owner = _newOwner;
 	}
-
-	
 }
 
 contract Pausable is Ownable {
@@ -211,11 +205,10 @@ contract Pausable is Ownable {
 contract WrappedOrigin is ERC20, Pausable {
 	using SafeMath for uint256;
 
-	IERC721 public constant axieNFT = IERC721(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
-	AxieCore public constant axieCore = AxieCore(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
-	AxieExtraData public constant extraData = AxieExtraData(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
+	AxieCore public constant AXIE_CORE = AxieCore(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
+	AxieExtraData public constant AXIE_EXTRA = AxieExtraData(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
 
-	uint256[] public axies;
+	uint256[] public axieIds;
 
 	event AxieWrapped(uint256 axieId);
 	event AxieUnwrapped(uint256 axieId);
@@ -226,7 +219,7 @@ contract WrappedOrigin is ERC20, Pausable {
 	function isContract(address _addr) internal view returns (bool){
 		uint32 _size;
 		assembly {
-			_size := extcodesize(_addr)
+			_size:= extcodesize(_addr)
 		}
 		return (_size > 0);
 	}
@@ -236,15 +229,15 @@ contract WrappedOrigin is ERC20, Pausable {
 	}
 
 	// beast 0000 aqua 0100 plant 0011 bug 0001 bird 0010 reptile 0101
-	function isValidCommonOrigin(uint256 _tokenId) public view returns(bool) {
-		(uint256 _genes,) = axieCore.getAxie(_tokenId);
+	function isValidCommonOrigin(uint256 _axieId) public view returns(bool) {
+		(uint256 _genes,) = AXIE_CORE.getAxie(_axieId);
 		uint256 _originGene = (_genes >> 238) & 1;
 		if (_originGene != 1)
 			return false;
 		uint256 _classGenes = (_genes >> 252);
 		if (_classGenes != 0 || _classGenes != 4 || _classGenes != 3)
 			return false;
-		(,,uint256 _breedCount,) =extraData.getExtra(_tokenId);
+		(,,uint256 _breedCount,) =AXIE_EXTRA.getExtra(_axieId);
 		if (_breedCount > 2)
 			return false;
 		return !isMystic(_genes);
@@ -262,38 +255,40 @@ contract WrappedOrigin is ERC20, Pausable {
 		return false;
 	}
 
-	function wrap(uint256[] calldata _tokenIds) public notPaused {
-		for (uint256 i = 0; i < _tokenIds.length; i++) {
-			require(isValidCommonOrigin(_tokenIds[i]), "WrappedOrigin : Axie is not an Origin axie.");
-			axies.push(_tokenIds[i]);
-			axieNFT.safeTransferFrom(msg.sender, address(this), _tokenIds[i]);
-			emit AxieWrapped(_tokenIds[i]);
+	function wrap(uint256[] calldata _axieIdsToWrap) public notPaused {
+		for (uint256 i = 0; i < _axieIdsToWrap.length; i++) {
+			require(isValidCommonOrigin(_axieIdsToWrap[i]), "WrappedOrigin: Axie is not an Origin axie.");
+			axieIds.push(_axieIdsToWrap[i]);
+			AXIE_CORE.safeTransferFrom(msg.sender, address(this), _axieIdsToWrap[i]);
+			emit AxieWrapped(_axieIdsToWrap[i]);
 		}
-		_mint(msg.sender, _tokenIds.length * 10**decimals);
+		_mint(msg.sender, _axieIdsToWrap.length * 10**decimals);
 	}
 
 	function unwrap(uint256 _amount) public notPaused{
-		require(!isContract(msg.sender), "WrappedOrigin : Address must not be a contract.");
+		require(!isContract(msg.sender), "WrappedOrigin: Address must not be a contract.");
 		unwrapFor(_amount, msg.sender);
 	}
 
-	function unwrapFor(uint256 _amount, address _recipient) public notPaused{
-		require(!isContract(_recipient), "WrappedOrigin : Recipient must not be a contract.");
-		require(_recipient != address(0), "WrappedOrigin : Cannot send to void address.");
-		_burn(msg.sender, _amount * 10**decimals);
-		for (uint256 i = 0; i < _amount; i++) {
-			uint256 _index = _getRandomNumber(axies.length);
-			uint256 _tokenId = axies[_index];
+	function unwrapFor(uint256 _amount, address _recipient) public notPaused {
+		require(!isContract(_recipient), "WrappedOrigin: Recipient must not be a contract.");
+		require(_recipient != address(0), "WrappedOrigin: Cannot send to void address.");
 
-			axies[_index] = axies[axies.length - 1];
-			axies.pop();
-			axieNFT.safeTransferFrom(address(this), _recipient, _tokenId);
+		_burn(msg.sender, _amount * 10**decimals);
+
+		for (uint256 i = 0; i < _amount; i++) {
+			uint256 _index = _getRandomNumber(axieIds.length);
+			uint256 _tokenId = axieIds[_index];
+
+			axieIds[_index] = axieIds[axieIds.length - 1];
+			axieIds.pop();
+			AXIE_CORE.safeTransferFrom(address(this), _recipient, _tokenId);
 			emit AxieUnwrapped(_tokenId);
 		}
 	}
 
 	function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external view returns (bytes4) {
-		require(msg.sender == address(axieNFT), "Not Axie NFT");
+		require(msg.sender == address(AXIE_CORE), "Not Axie NFT");
 		return WrappedOrigin.onERC721Received.selector;
 	}
 }
