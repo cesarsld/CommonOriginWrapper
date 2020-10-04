@@ -214,7 +214,7 @@ contract WrappedOrigin is ERC20, Pausable {
 	constructor (string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol, _decimals)
 	{}
 
-	function isContract(address _addr) internal view returns (bool){
+	function isContract(address _addr) internal view returns (bool) {
 		uint32 _size;
 		assembly {
 			_size:= extcodesize(_addr)
@@ -235,7 +235,7 @@ contract WrappedOrigin is ERC20, Pausable {
 		uint256 _classGenes = (_genes >> 252);
 		if (_classGenes != 0 || _classGenes != 4 || _classGenes != 3)
 			return false;
-		(,,uint256 _breedCount,) =AXIE_EXTRA.getExtra(_axieId);
+		(,,uint256 _breedCount,) = AXIE_EXTRA.getExtra(_axieId);
 		if (_breedCount > 2)
 			return false;
 		return !isMystic(_genes);
