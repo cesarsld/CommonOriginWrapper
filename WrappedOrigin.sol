@@ -225,7 +225,7 @@ contract WrappedOrigin is ERC20, Pausable {
 	}
 
 	function _getRandomNumber(uint256 _range) internal view returns(uint256) {
-		return uint256(keccak256(abi.encodePacked(block.timestamp, blockhash(block.number - 1)))) % _range;
+		return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % _range;
 	}
 
 	// beast 0000 aqua 0100 plant 0011 bug 0001 bird 0010 reptile 0101
