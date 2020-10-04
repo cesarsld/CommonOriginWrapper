@@ -51,7 +51,6 @@ library SafeMath {
 		if (a == 0) {
 			return 0;
 		}
-
 		uint256 c = a * b;
 		require(c / a == b, "SafeMath: multiplication overflow.");
 		return c;
@@ -65,7 +64,6 @@ library SafeMath {
 		// Solidity only automatically asserts when dividing by 0
 		require(b > 0, errorMessage);
 		uint256 c = a / b;
-
 		return c;
 	}
 
