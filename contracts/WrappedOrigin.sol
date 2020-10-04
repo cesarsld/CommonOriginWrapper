@@ -233,12 +233,18 @@ contract WrappedOrigin is ERC20, Pausable {
 		if (_originGene != 1)
 			return false;
 		uint256 _classGenes = (_genes >> 252);
-		if (_classGenes != 0 || _classGenes != 4 || _classGenes != 3)
+		if (!isCommonClass(_classGenes))
 			return false;
 		(,,uint256 _breedCount,) = AXIE_EXTRA.getExtra(_axieId);
 		if (_breedCount > 2)
 			return false;
 		return !isMystic(_genes);
+	}
+
+	function isCommonClass(uint256 _classGene) pure internal returns (bool) {
+		if (_classGene == 0 || _classGene == 3 || _classGene == 4)
+			return true;
+		return false;
 	}
 
 	function isMystic(uint256 _genes) pure internal returns (bool) {
