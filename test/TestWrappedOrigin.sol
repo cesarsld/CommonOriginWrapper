@@ -5,7 +5,7 @@ import "truffle/DeployedAddresses.sol";
 
 contract TestWrappedOrigin {
 	//no way to test breedcount but logic is pretty simple
-	function isValidCommonOrigin(uint256 _genes) public pure returns(bool) {
+	function isValidCommonOrigin(uint256 _genes) public view returns(bool) {
 		//(uint256 _genes,) = AXIE_CORE.getAxie(_axieId);
 		uint256 _originGene = (_genes >> 238) & 1;
 		if (_originGene != 1)
@@ -25,7 +25,7 @@ contract TestWrappedOrigin {
 		return false;
 	}
 
-	function isMystic(uint256 _genes) pure public returns (bool) {
+	function isMystic(uint256 _genes) pure internal returns (bool) {
 		uint256 _part;
 		uint256 _mysticSelector = 0xc0000000;
 		for (uint256 i = 0; i < 6 ;i ++) {
@@ -58,5 +58,8 @@ contract TestWrappedOrigin {
 		Assert.equal(isValidCommonOrigin(35280843902427976618015639537133899638771478398011836203626013928767667310786), true, "3370 Should have been true");
 		// bird origin 2183
 		Assert.equal(isValidCommonOrigin(15831391412715648261911819537118912824982230814901125944776310240889981245570), false, "2183 Should have been false");
+		// 5428195896030893859344822084343650488447652254129896797584391130303015684164 beast origin
+		Assert.equal(isValidCommonOrigin(5428195896030893859344822084343650488447652254129896797584391130303015684164), true, "69539 Should have been false");
+
 	}
 }

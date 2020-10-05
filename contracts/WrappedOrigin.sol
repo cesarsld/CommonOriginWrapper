@@ -159,7 +159,7 @@ interface AxieCore is IERC721 {
 }
 
 interface AxieExtraData {
-	function getExtra(uint256 _axieId) external view returns (uint256, uint256, uint256 /* breed count */, uint256);
+	function getExtra(uint256 _axieId) external view returns (uint256, uint256, uint256, uint256 /* breed count */);
 }
 
 contract Ownable {
@@ -238,7 +238,7 @@ contract WrappedOrigin is ERC20, Pausable {
 		uint256 _classGenes = (_genes >> 252);
 		if (!isCommonClass(_classGenes))
 			return false;
-		(,,uint256 _breedCount,) = AXIE_EXTRA.getExtra(_axieId);
+		(,,,uint256 _breedCount) = AXIE_EXTRA.getExtra(_axieId);
 		if (_breedCount > 2)
 			return false;
 		return !isMystic(_genes);
