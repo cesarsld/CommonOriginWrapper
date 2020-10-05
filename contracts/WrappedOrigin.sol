@@ -222,8 +222,11 @@ contract WrappedOrigin is ERC20, Pausable {
 		return (_size > 0);
 	}
 
-	function _getRandomNumber(uint256 _range) internal view returns(uint256) {
-		return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % _range;
+	function _getSeed(uint256 _seed) internal view returns (uint256) {
+		if (_seed == 0)
+			return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
+		else
+			return uint256(keccak256(abi.encodePacked(_seed)));
 	}
 
 	// beast 0000 aqua 0100 plant 0011 bug 0001 bird 0010 reptile 0101
@@ -279,9 +282,10 @@ contract WrappedOrigin is ERC20, Pausable {
 		require(_recipient != address(0), "WrappedOrigin: Cannot send to void address.");
 
 		_burn(msg.sender, _amount * 10**decimals);
-
+		uint256 _seed = 0;
 		for (uint256 i = 0; i < _amount; i++) {
-			uint256 _index = _getRandomNumber(axieIds.length);
+			_seed = _getSeed(_seed);
+			uint256 _index = _seed % axieIds.length;
 			uint256 _tokenId = axieIds[_index];
 
 			axieIds[_index] = axieIds[axieIds.length - 1];
