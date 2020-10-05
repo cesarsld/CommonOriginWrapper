@@ -222,9 +222,9 @@ contract WrappedOrigin is ERC20, Pausable {
 		return (_size > 0);
 	}
 
-	function _getSeed(uint256 _seed) internal view returns (uint256) {
+	function _getSeed(uint256 _seed, address _sender) internal view returns (uint256) {
 		if (_seed == 0)
-			return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty)));
+			return uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty, _sender)));
 		else
 			return uint256(keccak256(abi.encodePacked(_seed)));
 	}
@@ -284,7 +284,7 @@ contract WrappedOrigin is ERC20, Pausable {
 		_burn(msg.sender, _amount * 10**decimals);
 		uint256 _seed = 0;
 		for (uint256 i = 0; i < _amount; i++) {
-			_seed = _getSeed(_seed);
+			_seed = _getSeed(_seed, msg.sender);
 			uint256 _index = _seed % axieIds.length;
 			uint256 _tokenId = axieIds[_index];
 
