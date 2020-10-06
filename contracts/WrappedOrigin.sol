@@ -247,7 +247,7 @@ contract WrappedOrigin is ERC20("Wrapped Origin Axie", "WOA", 18), Pausable {
 	function isMystic(uint256 _genes) pure internal returns (bool) {
 		uint256 _part;
 		uint256 _mysticSelector = 0xc0000000;
-		for (uint256 i = 0; i < 6 ;i ++) {
+		for (uint256 i = 0; i < 6 ; i++) {
 			_part = _genes & 0xffffffff;
 			if (_part & _mysticSelector == _mysticSelector)
 				return true;
