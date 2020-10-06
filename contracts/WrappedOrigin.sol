@@ -289,7 +289,7 @@ contract WrappedOrigin is ERC20("Wrapped Origin Axie", "WOA", 18), Pausable {
 		}
 	}
 
-	function onERC721Received(address _operator, address _from, uint256 _tokenId, bytes calldata _data) external view returns (bytes4) {
+	function onERC721Received(address _from, uint256 _tokenId, bytes calldata _data) external view returns (bytes4) {
 		require(msg.sender == address(AXIE_CORE), "Not Axie NFT");
 		return WrappedOrigin.onERC721Received.selector;
 	}
