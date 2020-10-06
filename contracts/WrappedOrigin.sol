@@ -197,7 +197,7 @@ contract Pausable is Ownable {
 	}
 }
 
-contract WrappedOrigin is ERC20, Pausable {
+contract WrappedOrigin is ERC20("Wrapped Origin Axie", "WOA", 18), Pausable {
 	using SafeMath for uint256;
 
 	AxieCore public constant AXIE_CORE = AxieCore(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
@@ -207,9 +207,6 @@ contract WrappedOrigin is ERC20, Pausable {
 
 	event AxieWrapped(uint256 axieId);
 	event AxieUnwrapped(uint256 axieId);
-
-	constructor (string memory _name, string memory _symbol, uint8 _decimals) ERC20(_name, _symbol, _decimals)
-	{}
 
 	function isContract(address _addr) internal view returns (bool) {
 		uint32 _size;
@@ -266,7 +263,7 @@ contract WrappedOrigin is ERC20, Pausable {
 			AXIE_CORE.safeTransferFrom(msg.sender, address(this), _axieIdsToWrap[i]);
 			emit AxieWrapped(_axieIdsToWrap[i]);
 		}
-		_mint(msg.sender, _axieIdsToWrap.length * 10**decimals);
+		_mint(msg.sender, _axieIdsToWrap.length * (10**decimals));
 	}
 
 	function unwrap(uint256 _amount) public notPaused{
@@ -278,7 +275,7 @@ contract WrappedOrigin is ERC20, Pausable {
 		require(!isContract(_recipient), "WrappedOrigin: Recipient must not be a contract.");
 		require(_recipient != address(0), "WrappedOrigin: Cannot send to void address.");
 
-		_burn(msg.sender, _amount * 10**decimals);
+		_burn(msg.sender, _amount * (10**decimals));
 		uint256 _seed = 0;
 		for (uint256 i = 0; i < _amount; i++) {
 			_seed = _getSeed(_seed, msg.sender);
